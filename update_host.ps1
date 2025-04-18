@@ -19,7 +19,22 @@ try {
 
 # Update hosts file
 $hostsPath = "C:\Windows\System32\drivers\etc\hosts"
-$hostsFileContent = Get-Content -Path $hostsPath -Raw
+$hostsFileContent = ""
+
+# Try to read the hosts file
+try {
+    $hostsFileContent = Get-Content -Path $hostsPath -Raw -ErrorAction Stop
+    Write-Host "Successfully read hosts file." -ForegroundColor Green
+} catch {
+    Write-Host "Warning: Could not read hosts file: $_" -ForegroundColor Yellow
+    Write-Host "Creating new hosts file content." -ForegroundColor Yellow
+    $hostsFileContent = ""
+}
+
+# Ensure $hostsFileContent is not null
+if ($null -eq $hostsFileContent) {
+    $hostsFileContent = ""
+}
 
 # Check if GitHub hosts entries already exist
 if ($hostsFileContent -match "# GitHub Host Start[\s\S]*?# GitHub Host End") {
