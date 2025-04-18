@@ -36,14 +36,17 @@ if ($null -eq $hostsFileContent) {
     $hostsFileContent = ""
 }
 
-# Check if GitHub hosts entries already exist
-if ($hostsFileContent -match "# GitHub Host Start[\s\S]*?# GitHub Host End") {
+# Check if GitHub hosts entries already exist with the specified markers
+if ($hostsFileContent -match "#github-start[\s\S]*?#github-end") {
     Write-Host "Existing GitHub hosts entries found. Removing them..." -ForegroundColor Yellow
-    $hostsFileContent = $hostsFileContent -replace "# GitHub Host Start[\s\S]*?# GitHub Host End", ""
+    $hostsFileContent = $hostsFileContent -replace "#github-start[\s\S]*?#github-end", ""
 }
 
+# Format GitHub hosts with the specified markers
+$formattedGithubHosts = "#github-start`n" + $githubHosts + "`n#github-end"
+
 # Add new GitHub hosts entries
-$hostsFileContent = $hostsFileContent.TrimEnd() + "`n`n" + $githubHosts
+$hostsFileContent = $hostsFileContent.TrimEnd() + "`n`n" + $formattedGithubHosts
 
 # Try multiple times to update the hosts file in case it's locked
 $maxRetries = 3
@@ -52,8 +55,10 @@ $success = $false
 
 while (-not $success -and $retryCount -lt $maxRetries) {
     try {
-        $hostsFileContent | Set-Content -Path $hostsPath -Force
-        Write-Host "Hosts file updated successfully." -ForegroundColor Green
+        # Write the file with UTF-8 encoding without BOM
+        $utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllText($hostsPath, $hostsFileContent, $utf8NoBomEncoding)
+        Write-Host "Hosts file updated successfully with UTF-8 encoding." -ForegroundColor Green
         $success = $true
     } catch {
         $retryCount++
