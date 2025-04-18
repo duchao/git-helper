@@ -30,12 +30,27 @@ if ($hostsFileContent -match "# GitHub Host Start[\s\S]*?# GitHub Host End") {
 # Add new GitHub hosts entries
 $hostsFileContent = $hostsFileContent.TrimEnd() + "`n`n" + $githubHosts
 
-try {
-    $hostsFileContent | Set-Content -Path $hostsPath -Force
-    Write-Host "Hosts file updated successfully." -ForegroundColor Green
-} catch {
-    Write-Host "Failed to update hosts file: $_" -ForegroundColor Red
-    exit 1
+# Try multiple times to update the hosts file in case it's locked
+$maxRetries = 3
+$retryCount = 0
+$success = $false
+
+while (-not $success -and $retryCount -lt $maxRetries) {
+    try {
+        $hostsFileContent | Set-Content -Path $hostsPath -Force
+        Write-Host "Hosts file updated successfully." -ForegroundColor Green
+        $success = $true
+    } catch {
+        $retryCount++
+        Write-Host "Failed to update hosts file (attempt $retryCount of $maxRetries): $_" -ForegroundColor Yellow
+        
+        if ($retryCount -lt $maxRetries) {
+            Write-Host "Waiting 3 seconds before retrying..." -ForegroundColor Yellow
+            Start-Sleep -Seconds 3
+        } else {
+            Write-Host "Could not update hosts file after $maxRetries attempts. Please close any applications that might be using the hosts file and try again." -ForegroundColor Red
+        }
+    }
 }
 
 # Flush DNS cache
